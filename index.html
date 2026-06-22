@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<title>Ledger — Moneydance Tracker</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --surface: #181b22;
+    --surface-2: #20242d;
+    --border: #2a2f3a;
+    --text: #e8eaf0;
+    --text-dim: #8a92a3;
+    --accent: #7dd3a0;
+    --accent-dim: #4a8765;
+    --accent-text: #0f1115;
+    --danger: #e07b7b;
+    --positive: #7dd3a0;
+    --negative: #e07b7b;
+    --caret: #8a92a3;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5efe0;
+    --surface: #fbf6e9;
+    --surface-2: #ede4cd;
+    --border: #d9ccab;
+    --text: #2a2418;
+    --text-dim: #7a6f55;
+    --accent: #2f7d54;
+    --accent-dim: #a8c9b6;
+    --accent-text: #ffffff;
+    --danger: #b3261e;
+    --positive: #2f7d54;
+    --negative: #b3261e;
+    --caret: #7a6f55;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    overscroll-behavior: none;
+  }
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    min-height: 100vh;
+  }
+  header {
+    padding: 16px 16px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header .count {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  #theme-toggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-family: inherit;
+  }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  main {
+    padding: 16px;
+    padding-bottom: 100px;
+  }
+  .section {
+    display: none;
+  }
+  .section.active {
+    display: block;
+  }
+
+  /* Forms */
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin: 14px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3e%3cpath fill='%238a92a3' d='M6 9L1 4h10z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .type-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .type-toggle button {
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .type-toggle button.active {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .type-toggle button.active.expense { color: var(--negative); }
+  .type-toggle button.active.income { color: var(--positive); }
+
+  button.primary {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.primary:disabled {
+    background: var(--accent-dim);
+    opacity: 0.6;
+  }
+  button.secondary {
+    width: 100%;
+    padding: 12px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  button.danger {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+
+  /* Transaction list */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .filter-bar select {
+    flex: 1;
+    padding: 8px 28px 8px 10px;
+    font-size: 14px;
+  }
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .txn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .txn-info { flex: 1; min-width: 0; }
+  .txn-payee {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .txn-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .txn-meta .dot { opacity: 0.5; }
+  .txn-amount {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .txn-amount.expense { color: var(--negative); }
+  .txn-amount.income { color: var(--positive); }
+  .txn-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+  }
+  .txn-actions button {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .txn-actions button.del { color: var(--danger); }
+
+  /* Accounts/Categories management */
+  .item-list {
+    margin-bottom: 16px;
+  }
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+  .item-name { font-size: 15px; }
+  .item-balance {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .item button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 13px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .add-inline {
+    display: flex;
+    gap: 8px;
+  }
+  .add-inline input { flex: 1; }
+  .add-inline button {
+    padding: 0 16px;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  h2 {
+    font-size: 15px;
+    margin: 20px 0 10px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  h2:first-child { margin-top: 0; }
+
+  /* Export */
+  .export-output {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    white-space: pre;
+    overflow-x: auto;
+    max-height: 240px;
+    overflow-y: auto;
+    color: var(--text-dim);
+  }
+  .info {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    background: var(--surface);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .info strong { color: var(--text); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--accent);
+    color: var(--accent-text);
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ledger</h1>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <button id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+      <span id="theme-icon">☀</span>
+    </button>
+    <span class="count" id="header-count">0 transactions</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="add">Add</button>
+  <button class="tab" data-tab="list">List</button>
+  <button class="tab" data-tab="manage">Manage</button>
+  <button class="tab" data-tab="export">Export</button>
+</nav>
+
+<main>
+
+  <!-- ADD -->
+  <section class="section active" id="section-add">
+    <label>Type</label>
+    <div class="type-toggle">
+      <button id="type-expense" class="active expense" data-type="expense">− Expense</button>
+      <button id="type-income" data-type="income">+ Income</button>
+    </div>
+
+    <label for="f-date">Date</label>
+    <input type="date" id="f-date">
+
+    <label for="f-amount">Amount</label>
+    <input type="text" inputmode="decimal" id="f-amount" placeholder="0.00" autocomplete="off">
+
+    <label for="f-payee">Payee / Description</label>
+    <input type="text" id="f-payee" placeholder="e.g. Trader Joe's" autocomplete="off">
+
+    <div class="row">
+      <div>
+        <label for="f-account">Account</label>
+        <select id="f-account"></select>
+      </div>
+      <div>
+        <label for="f-category">Category</label>
+        <select id="f-category"></select>
+      </div>
+    </div>
+
+    <label for="f-memo">Memo (optional)</label>
+    <input type="text" id="f-memo" placeholder="Note to self" autocomplete="off">
+
+    <button class="primary" id="btn-add">Add transaction</button>
+    <button class="secondary" id="btn-clear">Clear form</button>
+  </section>
+
+  <!-- LIST -->
+  <section class="section" id="section-list">
+    <div class="filter-bar">
+      <select id="filter-account"><option value="">All accounts</option></select>
+      <select id="filter-month"><option value="">All time</option></select>
+    </div>
+    <div id="txn-list"></div>
+  </section>
+
+  <!-- MANAGE -->
+  <section class="section" id="section-manage">
+    <h2>Display</h2>
+    <label for="currency-select" style="margin-top:0">Currency symbol</label>
+    <select id="currency-select">
+      <option value="฿">฿ — Thai Baht</option>
+      <option value="$">$ — Dollar</option>
+      <option value="€">€ — Euro</option>
+      <option value="£">£ — Pound</option>
+      <option value="¥">¥ — Yen / Yuan</option>
+      <option value="₩">₩ — Won</option>
+      <option value="₹">₹ — Rupee</option>
+      <option value="₫">₫ — Dong</option>
+      <option value="Rp">Rp — Rupiah</option>
+      <option value="RM">RM — Ringgit</option>
+      <option value="S$">S$ — Singapore Dollar</option>
+      <option value="HK$">HK$ — Hong Kong Dollar</option>
+      <option value="">(none)</option>
+    </select>
+    <div class="info" style="margin-top:12px; margin-bottom:0;">
+      Display only — exports contain raw numbers. Set the currency on the Moneydance account when you import.
+    </div>
+
+    <h2>Accounts</h2>
+    <div class="item-list" id="accounts-list"></div>
+    <div class="add-inline">
+      <input type="text" id="new-account" placeholder="New account name" autocomplete="off">
+      <button id="btn-add-account">Add</button>
+    </div>
+
+    <h2>Categories</h2>
+    <div class="item-list" id="categories-list"></div>
+    <div class="add-inline">
+      <input type="text" id="new-category" placeholder="New category" autocomplete="off">
+      <button id="btn-add-category">Add</button>
+    </div>
+
+    <h2>Data</h2>
+    <button class="secondary" id="btn-backup">Download backup (JSON)</button>
+    <button class="secondary" id="btn-restore">Restore from backup</button>
+    <input type="file" id="restore-file" accept=".json" style="display:none">
+    <button class="secondary danger" id="btn-wipe">Wipe all data</button>
+  </section>
+
+  <!-- EXPORT -->
+  <section class="section" id="section-export">
+    <div class="info">
+      <strong>Moneydance import:</strong> In Moneydance, go to <strong>File → Import</strong>, select your downloaded file, then map the columns when prompted. CSV columns are: Date, Payee, Amount, Category, Account, Memo.
+    </div>
+
+    <label for="export-account">Account to export</label>
+    <select id="export-account">
+      <option value="">All accounts (separate files)</option>
+    </select>
+
+    <label for="export-range">Date range</label>
+    <select id="export-range">
+      <option value="all">All transactions</option>
+      <option value="unexported">Not yet exported</option>
+      <option value="thismonth">This month</option>
+      <option value="lastmonth">Last month</option>
+    </select>
+
+    <button class="primary" id="btn-export-csv">Download CSV</button>
+    <button class="secondary" id="btn-export-qif">Download QIF</button>
+    <button class="secondary" id="btn-mark-exported">Mark all as exported</button>
+
+    <div class="export-output" id="export-preview" style="display:none"></div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---------- Storage ----------
+  const STORAGE_KEY = 'moneydance-ledger-v1';
+
+  function loadState() {
+    let s;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) s = JSON.parse(raw);
+    } catch (e) {}
+    if (!s) {
+      s = {
+        transactions: [],
+        accounts: ['Checking', 'Cash'],
+        categories: [
+          'Groceries', 'Dining', 'Transport', 'Utilities',
+          'Rent', 'Entertainment', 'Shopping', 'Health',
+          'Income:Salary', 'Income:Other', 'Transfer', 'Other'
+        ]
+      };
+    }
+    // Migrate / ensure settings exist
+    if (!s.settings) s.settings = {};
+    if (!s.settings.currency) s.settings.currency = '฿';
+    return s;
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      toast('Save failed: ' + e.message);
+    }
+  }
+
+  let state = loadState();
+  let currentType = 'expense';
+
+  // ---------- Helpers ----------
+  function $(id) { return document.getElementById(id); }
+  function todayISO() {
+    const d = new Date();
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d - tz).toISOString().slice(0, 10);
+  }
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function fmtMoney(n) {
+    const sign = n < 0 ? '-' : '';
+    const sym = (state.settings && state.settings.currency) || '$';
+    return sign + sym + Math.abs(n).toFixed(2);
+  }
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function csvEscape(s) {
+    if (s == null) return '';
+    s = String(s);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function downloadFile(filename, content, mime) {
+    const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      $('section-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'list') renderList();
+      if (btn.dataset.tab === 'manage') renderManage();
+      if (btn.dataset.tab === 'export') renderExportSelects();
+    });
+  });
+
+  // ---------- Type toggle ----------
+  document.querySelectorAll('.type-toggle button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.type-toggle button').forEach(x => x.classList.remove('active', 'expense', 'income'));
+      b.classList.add('active', b.dataset.type);
+      currentType = b.dataset.type;
+    });
+  });
+
+  // ---------- Selects ----------
+  function fillSelect(sel, items, includeBlank, blankLabel) {
+    sel.innerHTML = '';
+    if (includeBlank) {
+      const o = document.createElement('option');
+      o.value = '';
+      o.textContent = blankLabel || '';
+      sel.appendChild(o);
+    }
+    items.forEach(it => {
+      const o = document.createElement('option');
+      o.value = it;
+      o.textContent = it;
+      sel.appendChild(o);
+    });
+  }
+
+  function refreshAllSelects() {
+    fillSelect($('f-account'), state.accounts);
+    fillSelect($('f-category'), state.categories);
+    fillSelect($('filter-account'), state.accounts, true, 'All accounts');
+    fillSelect($('export-account'), state.accounts, true, 'All accounts (separate files)');
+    fillMonthFilter();
+  }
+
+  function fillMonthFilter() {
+    const months = new Set();
+    state.transactions.forEach(t => months.add(t.date.slice(0, 7)));
+    const sorted = Array.from(months).sort().reverse();
+    const sel = $('filter-month');
+    sel.innerHTML = '<option value="">All time</option>';
+    sorted.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = new Date(m + '-01').toLocaleDateString(undefined, { year:'numeric', month:'long' });
+      sel.appendChild(o);
+    });
+  }
+
+  // ---------- Add transaction ----------
+  $('btn-add').addEventListener('click', () => {
+    const date = $('f-date').value;
+    const amountStr = $('f-amount').value.trim().replace(/,/g, '');
+    const payee = $('f-payee').value.trim();
+    const account = $('f-account').value;
+    const category = $('f-category').value;
+    const memo = $('f-memo').value.trim();
+
+    if (!date) return toast('Pick a date');
+    if (!amountStr || isNaN(parseFloat(amountStr))) return toast('Enter an amount');
+    if (!payee) return toast('Enter a payee');
+    if (!account) return toast('Pick an account');
+
+    const amt = Math.abs(parseFloat(amountStr));
+    const signed = currentType === 'expense' ? -amt : amt;
+
+    state.transactions.push({
+      id: uid(),
+      date, payee, account, category, memo,
+      amount: signed,
+      type: currentType,
+      exported: false,
+      created: Date.now()
+    });
+    saveState();
+    toast('Added');
+    clearForm();
+    updateHeaderCount();
+  });
+
+  $('btn-clear').addEventListener('click', clearForm);
+
+  function clearForm() {
+    $('f-date').value = todayISO();
+    $('f-amount').value = '';
+    $('f-payee').value = '';
+    $('f-memo').value = '';
+    // Keep account/category as last used for speed
+  }
+
+  function updateHeaderCount() {
+    const n = state.transactions.length;
+    $('header-count').textContent = n + ' transaction' + (n === 1 ? '' : 's');
+  }
+
+  // ---------- List ----------
+  function renderList() {
+    const acct = $('filter-account').value;
+    const month = $('filter-month').value;
+    let txns = state.transactions.slice();
+    if (acct) txns = txns.filter(t => t.account === acct);
+    if (month) txns = txns.filter(t => t.date.startsWith(month));
+    txns.sort((a, b) => b.date.localeCompare(a.date) || b.created - a.created);
+
+    const list = $('txn-list');
+    if (txns.length === 0) {
+      list.innerHTML = '<div class="empty">No transactions yet.</div>';
+      return;
+    }
+
+    list.innerHTML = txns.map(t => `
+      <div class="txn" data-id="${t.id}">
+        <div class="txn-info">
+          <div class="txn-payee">${escapeHtml(t.payee)}</div>
+          <div class="txn-meta">
+            <span>${t.date}</span>
+            <span class="dot">•</span>
+            <span>${escapeHtml(t.account)}</span>
+            ${t.category ? `<span class="dot">•</span><span>${escapeHtml(t.category)}</span>` : ''}
+            ${t.exported ? '<span class="dot">•</span><span>✓ exported</span>' : ''}
+          </div>
+          ${t.memo ? `<div class="txn-meta" style="margin-top:4px">${escapeHtml(t.memo)}</div>` : ''}
+          <div class="txn-actions">
+            <button class="del" data-action="delete" data-id="${t.id}">Delete</button>
+          </div>
+        </div>
+        <div class="txn-amount ${t.type}">${fmtMoney(t.amount)}</div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Delete this transaction?')) return;
+        state.transactions = state.transactions.filter(x => x.id !== btn.dataset.id);
+        saveState();
+        renderList();
+        updateHeaderCount();
+        toast('Deleted');
+      });
+    });
+  }
+  $('filter-account').addEventListener('change', renderList);
+  $('filter-month').addEventListener('change', renderList);
+
+  // ---------- Manage ----------
+  function renderManage() {
+    // Sync currency dropdown
+    const curSel = $('currency-select');
+    const cur = state.settings.currency || '';
+    if (curSel.value !== cur) {
+      // If current value isn't in the dropdown options, fall back
+      let found = false;
+      for (let i = 0; i < curSel.options.length; i++) {
+        if (curSel.options[i].value === cur) { found = true; break; }
+      }
+      curSel.value = found ? cur : '$';
+    }
+
+    const accEl = $('accounts-list');
+    accEl.innerHTML = state.accounts.map(name => {
+      const bal = state.transactions
+        .filter(t => t.account === name)
+        .reduce((s, t) => s + t.amount, 0);
+      return `
+        <div class="item">
+          <div>
+            <div class="item-name">${escapeHtml(name)}</div>
+            <div class="item-balance">${fmtMoney(bal)}</div>
+          </div>
+          <button data-account="${escapeHtml(name)}">Remove</button>
+        </div>
+      `;
+    }).join('') || '<div class="empty">No accounts yet.</div>';
+
+    accEl.querySelectorAll('button[data-account]').forEach(b => {
+      b.addEventListener('click', () => {
+        const name = b.dataset.account;
+        const used = state.transactions.some(t => t.account === name);
+        if (used && !confirm('This account has transactions. Remove anyway? Transactions will keep the old name.')) return;
+        state.accounts = state.accounts.filter(a => a !== name);
+        saveState();
+        refreshAllSelects();
+        renderManage();
+      });
+    });
+
+    const catEl = $('categories-list');
+    catEl.innerHTML = state.categories.map(name => `
+      <div class="item">
+        <div class="item-name">${escapeHtml(name)}</div>
+        <button data-category="${escapeHtml(name)}">Remove</button>
+      </div>
+    `).join('') || '<div class="empty">No categories yet.</div>';
+
+    catEl.querySelectorAll('button[data-category]').forEach(b => {
+      b.addEventListener('click', () => {
+        const name = b.dataset.category;
+        state.categories = state.categories.filter(c => c !== name);
+        saveState();
+        refreshAllSelects();
+        renderManage();
+      });
+    });
+  }
+
+  $('currency-select').addEventListener('change', e => {
+    state.settings.currency = e.target.value;
+    saveState();
+    // Re-render anything showing money
+    renderList();
+    renderManage();
+    toast('Currency updated');
+  });
+
+  $('btn-add-account').addEventListener('click', () => {
+    const name = $('new-account').value.trim();
+    if (!name) return;
+    if (state.accounts.includes(name)) return toast('Already exists');
+    state.accounts.push(name);
+    $('new-account').value = '';
+    saveState();
+    refreshAllSelects();
+    renderManage();
+  });
+
+  $('btn-add-category').addEventListener('click', () => {
+    const name = $('new-category').value.trim();
+    if (!name) return;
+    if (state.categories.includes(name)) return toast('Already exists');
+    state.categories.push(name);
+    $('new-category').value = '';
+    saveState();
+    refreshAllSelects();
+    renderManage();
+  });
+
+  // Enter key on inline inputs
+  $('new-account').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-add-account').click(); });
+  $('new-category').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-add-category').click(); });
+
+  // ---------- Backup / Restore / Wipe ----------
+  $('btn-backup').addEventListener('click', () => {
+    const data = JSON.stringify(state, null, 2);
+    const name = 'ledger-backup-' + todayISO() + '.json';
+    downloadFile(name, data, 'application/json');
+    toast('Backup saved');
+  });
+
+  $('btn-restore').addEventListener('click', () => $('restore-file').click());
+  $('restore-file').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(reader.result);
+        if (!obj.transactions || !Array.isArray(obj.transactions)) throw new Error('Invalid backup');
+        if (!confirm('Replace all current data with this backup?')) return;
+        state = obj;
+        saveState();
+        refreshAllSelects();
+        renderManage();
+        updateHeaderCount();
+        toast('Restored');
+      } catch (err) {
+        toast('Restore failed: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  $('btn-wipe').addEventListener('click', () => {
+    if (!confirm('Delete ALL transactions, accounts, and categories?')) return;
+    if (!confirm('Really? This cannot be undone.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state = loadState();
+    refreshAllSelects();
+    renderManage();
+    updateHeaderCount();
+    renderList();
+    toast('All data wiped');
+  });
+
+  // ---------- Export ----------
+  function renderExportSelects() {
+    // already kept in sync via refreshAllSelects; nothing extra
+  }
+
+  function filterForExport() {
+    const range = $('export-range').value;
+    const acct = $('export-account').value;
+    let txns = state.transactions.slice();
+    if (acct) txns = txns.filter(t => t.account === acct);
+    const now = new Date();
+    if (range === 'unexported') {
+      txns = txns.filter(t => !t.exported);
+    } else if (range === 'thismonth') {
+      const m = now.toISOString().slice(0, 7);
+      txns = txns.filter(t => t.date.startsWith(m));
+    } else if (range === 'lastmonth') {
+      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const m = d.toISOString().slice(0, 7);
+      txns = txns.filter(t => t.date.startsWith(m));
+    }
+    txns.sort((a, b) => a.date.localeCompare(b.date));
+    return txns;
+  }
+
+  function buildCSV(txns) {
+    const header = ['Date', 'Payee', 'Amount', 'Category', 'Account', 'Memo'];
+    const rows = [header.join(',')];
+    txns.forEach(t => {
+      rows.push([
+        t.date,
+        csvEscape(t.payee),
+        t.amount.toFixed(2),
+        csvEscape(t.category || ''),
+        csvEscape(t.account),
+        csvEscape(t.memo || '')
+      ].join(','));
+    });
+    return rows.join('\n');
+  }
+
+  function buildQIF(txns, accountType) {
+    // QIF format - Moneydance supports this well
+    // Date format M/D/YYYY for compatibility
+    let out = '!Type:' + (accountType || 'Bank') + '\n';
+    txns.forEach(t => {
+      const [y, m, d] = t.date.split('-');
+      out += 'D' + parseInt(m,10) + '/' + parseInt(d,10) + '/' + y + '\n';
+      out += 'T' + t.amount.toFixed(2) + '\n';
+      out += 'P' + (t.payee || '') + '\n';
+      if (t.category) out += 'L' + t.category + '\n';
+      if (t.memo) out += 'M' + t.memo + '\n';
+      out += '^\n';
+    });
+    return out;
+  }
+
+  $('btn-export-csv').addEventListener('click', () => {
+    const acct = $('export-account').value;
+    if (!acct) {
+      // export each account separately
+      const accounts = Array.from(new Set(state.transactions.map(t => t.account)));
+      if (accounts.length === 0) return toast('No transactions to export');
+      let count = 0;
+      accounts.forEach(a => {
+        $('export-account').value = a;
+        const txns = filterForExport();
+        if (txns.length === 0) return;
+        const csv = buildCSV(txns);
+        const safeName = a.replace(/[^a-z0-9]+/gi, '_');
+        downloadFile('moneydance_' + safeName + '_' + todayISO() + '.csv', csv, 'text/csv');
+        count += txns.length;
+      });
+      $('export-account').value = '';
+      toast(count ? 'Exported ' + count + ' txns across accounts' : 'No matching transactions');
+      return;
+    }
+    const txns = filterForExport();
+    if (txns.length === 0) return toast('No matching transactions');
+    const csv = buildCSV(txns);
+    const safeName = acct.replace(/[^a-z0-9]+/gi, '_');
+    downloadFile('moneydance_' + safeName + '_' + todayISO() + '.csv', csv, 'text/csv');
+    $('export-preview').style.display = 'block';
+    $('export-preview').textContent = csv.length > 2000 ? csv.slice(0, 2000) + '\n...' : csv;
+    toast('Exported ' + txns.length + ' txns');
+  });
+
+  $('btn-export-qif').addEventListener('click', () => {
+    const acct = $('export-account').value;
+    if (!acct) {
+      const accounts = Array.from(new Set(state.transactions.map(t => t.account)));
+      if (accounts.length === 0) return toast('No transactions to export');
+      let count = 0;
+      accounts.forEach(a => {
+        $('export-account').value = a;
+        const txns = filterForExport();
+        if (txns.length === 0) return;
+        const qif = buildQIF(txns);
+        const safeName = a.replace(/[^a-z0-9]+/gi, '_');
+        downloadFile('moneydance_' + safeName + '_' + todayISO() + '.qif', qif, 'application/qif');
+        count += txns.length;
+      });
+      $('export-account').value = '';
+      toast(count ? 'Exported ' + count + ' txns across accounts' : 'No matching transactions');
+      return;
+    }
+    const txns = filterForExport();
+    if (txns.length === 0) return toast('No matching transactions');
+    const qif = buildQIF(txns);
+    const safeName = acct.replace(/[^a-z0-9]+/gi, '_');
+    downloadFile('moneydance_' + safeName + '_' + todayISO() + '.qif', qif, 'application/qif');
+    $('export-preview').style.display = 'block';
+    $('export-preview').textContent = qif.length > 2000 ? qif.slice(0, 2000) + '\n...' : qif;
+    toast('Exported ' + txns.length + ' txns');
+  });
+
+  $('btn-mark-exported').addEventListener('click', () => {
+    if (!confirm('Mark all transactions as exported?')) return;
+    state.transactions.forEach(t => t.exported = true);
+    saveState();
+    toast('All marked exported');
+  });
+
+  // ---------- Init ----------
+  $('f-date').value = todayISO();
+  refreshAllSelects();
+  updateHeaderCount();
+
+  // ---------- Theme ----------
+  const THEME_KEY = 'moneydance-ledger-theme';
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    $('theme-icon').textContent = theme === 'light' ? '☾' : '☀';
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  }
+  function initTheme() {
+    let saved;
+    try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
+    if (saved === 'light' || saved === 'dark') return applyTheme(saved);
+    // Default to light (cream) theme
+    applyTheme('light');
+  }
+  $('theme-toggle').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'light' ? 'dark' : 'light');
+  });
+  initTheme();
+
+})();
+</script>
+</body>
+</html>
