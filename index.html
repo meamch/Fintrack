@@ -413,6 +413,9 @@
 
   <!-- ADD -->
   <section class="section active" id="section-add">
+    <div id="edit-banner" style="display:none; padding:10px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; margin-bottom:12px; font-size:13px; color:var(--text-dim);">
+      ✏️ Editing transaction — tap <strong style="color:var(--text)">Save changes</strong> when done, or <strong style="color:var(--text)">Cancel edit</strong> to abandon.
+    </div>
     <label>Type</label>
     <div class="type-toggle">
       <button id="type-expense" class="active expense" data-type="expense">− Expense</button>
@@ -569,6 +572,7 @@
 
   let state = loadState();
   let currentType = 'expense';
+  let editingId = null;
 
   // ---------- Helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -627,16 +631,15 @@
       if (btn.dataset.tab === 'list') renderList();
       if (btn.dataset.tab === 'manage') renderManage();
       if (btn.dataset.tab === 'export') renderExportSelects();
+      if (btn.dataset.tab === 'add' && !editingId && !$('f-date').value) {
+        $('f-date').value = todayISO();
+      }
     });
   });
 
   // ---------- Type toggle ----------
   document.querySelectorAll('.type-toggle button').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.type-toggle button').forEach(x => x.classList.remove('active', 'expense', 'income'));
-      b.classList.add('active', b.dataset.type);
-      currentType = b.dataset.type;
-    });
+    b.addEventListener('click', () => setTypeUI(b.dataset.type));
   });
 
   // ---------- Selects ----------
@@ -678,7 +681,7 @@
     });
   }
 
-  // ---------- Add transaction ----------
+  // ---------- Add / Edit transaction ----------
   $('btn-add').addEventListener('click', () => {
     const date = $('f-date').value;
     const amountStr = $('f-amount').value.trim().replace(/,/g, '');
@@ -695,21 +698,42 @@
     const amt = Math.abs(parseFloat(amountStr));
     const signed = currentType === 'expense' ? -amt : amt;
 
-    state.transactions.push({
-      id: uid(),
-      date, payee, account, category, memo,
-      amount: signed,
-      type: currentType,
-      exported: false,
-      created: Date.now()
-    });
-    saveState();
-    toast('Added');
-    clearForm();
-    updateHeaderCount();
+    if (editingId) {
+      const t = state.transactions.find(x => x.id === editingId);
+      if (!t) { exitEditMode(); return toast('Transaction not found'); }
+      t.date = date;
+      t.payee = payee;
+      t.account = account;
+      t.category = category;
+      t.memo = memo;
+      t.amount = signed;
+      t.type = currentType;
+      t.modified = Date.now();
+      saveState();
+      toast('Saved');
+      exitEditMode();
+      // Jump back to the list to see the change
+      document.querySelector('.tab[data-tab="list"]').click();
+    } else {
+      state.transactions.push({
+        id: uid(),
+        date, payee, account, category, memo,
+        amount: signed,
+        type: currentType,
+        exported: false,
+        created: Date.now()
+      });
+      saveState();
+      toast('Added');
+      clearForm();
+      updateHeaderCount();
+    }
   });
 
-  $('btn-clear').addEventListener('click', clearForm);
+  $('btn-clear').addEventListener('click', () => {
+    if (editingId) { exitEditMode(); return; }
+    clearForm();
+  });
 
   function clearForm() {
     $('f-date').value = todayISO();
@@ -717,6 +741,42 @@
     $('f-payee').value = '';
     $('f-memo').value = '';
     // Keep account/category as last used for speed
+  }
+
+  function setTypeUI(type) {
+    currentType = type;
+    document.querySelectorAll('.type-toggle button').forEach(x => {
+      x.classList.remove('active', 'expense', 'income');
+      if (x.dataset.type === type) x.classList.add('active', type);
+    });
+  }
+
+  function enterEditMode(id) {
+    const t = state.transactions.find(x => x.id === id);
+    if (!t) return toast('Transaction not found');
+    editingId = id;
+    $('f-date').value = t.date;
+    $('f-amount').value = Math.abs(t.amount).toFixed(2);
+    $('f-payee').value = t.payee;
+    $('f-account').value = t.account;
+    $('f-category').value = t.category || '';
+    $('f-memo').value = t.memo || '';
+    setTypeUI(t.type);
+    $('btn-add').textContent = 'Save changes';
+    $('btn-clear').textContent = 'Cancel edit';
+    $('edit-banner').style.display = 'block';
+    // Switch to Add tab
+    document.querySelector('.tab[data-tab="add"]').click();
+    window.scrollTo(0, 0);
+  }
+
+  function exitEditMode() {
+    editingId = null;
+    $('btn-add').textContent = 'Add transaction';
+    $('btn-clear').textContent = 'Clear form';
+    $('edit-banner').style.display = 'none';
+    clearForm();
+    setTypeUI('expense');
   }
 
   function updateHeaderCount() {
@@ -752,12 +812,17 @@
           </div>
           ${t.memo ? `<div class="txn-meta" style="margin-top:4px">${escapeHtml(t.memo)}</div>` : ''}
           <div class="txn-actions">
+            <button data-action="edit" data-id="${t.id}">Edit</button>
             <button class="del" data-action="delete" data-id="${t.id}">Delete</button>
           </div>
         </div>
         <div class="txn-amount ${t.type}">${fmtMoney(t.amount)}</div>
       </div>
     `).join('');
+
+    list.querySelectorAll('[data-action="edit"]').forEach(btn => {
+      btn.addEventListener('click', () => enterEditMode(btn.dataset.id));
+    });
 
     list.querySelectorAll('[data-action="delete"]').forEach(btn => {
       btn.addEventListener('click', () => {
